@@ -5,91 +5,59 @@ import https from 'https';
 
 const app = express();
 
-// --- 1. CONFIGURACIÓN DE CORS ---
-// Esto permite que tu sitio en HostGator (trareysadoc.com) hable con Vercel
-app.use(cors({
-    origin: '*', // Permite peticiones desde cualquier origen
-    methods: ['GET', 'POST', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'token', 'Accept'],
-    credentials: true
-}));
+// --- CONFIGURACIÓN DE CORS MANUAL Y SEGURA ---
+app.use((req, res, next) => {
+    // Permitimos explícitamente tu dominio o cualquier origen (*)
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
+    res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, token, Accept, Authorization');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
 
-// Middleware para entender JSON
+    // RESPUESTA INMEDIATA AL PREFLIGHT (OPTIONS)
+    // Esto es lo que está fallando en tu consola
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+    }
+    next();
+});
+
 app.use(express.json());
 
-// Responder automáticamente a las peticiones "preflight" (OPTIONS)
-app.options('*', cors());
-
-// --- 2. VARIABLES DE ENTORNO ---
+// --- VARIABLES ---
 const API_IA_URL = "https://trak-smart.trareysa.com:8093/api/chatbot/ask";
 const API_TOKEN = "APIKEY_EMPRESA_SOFTGATE_001";
 
-// Agente HTTPS para ignorar el certificado no confiable de la IA
 const httpsAgent = new https.Agent({ 
     rejectUnauthorized: false,
     keepAlive: true 
 });
 
-// --- 3. RUTA DEL PUENTE ---
+// --- RUTA POST ---
 app.post('/api/ask', async (req, res) => {
     const { question } = req.body;
-
-    // Validación básica
-    if (!question) {
-        return res.status(400).json({ 
-            success: false, 
-            error: "La pregunta es obligatoria." 
-        });
-    }
+    if (!question) return res.status(400).json({ error: "Pregunta obligatoria" });
 
     try {
-        // Petición a la API externa de Trareysa (Puerto 8093)
-        const response = await axios.post(
-            API_IA_URL,
-            {
-                message: question,
-                vista: "CFDI",
-                controladorOModulo: "SoporteCfdiController"
+        const response = await axios.post(API_IA_URL, {
+            message: question,
+            vista: "CFDI",
+            controladorOModulo: "SoporteCfdiController"
+        }, {
+            headers: { 
+                "token": API_TOKEN,
+                "Content-Type": "application/json"
             },
-            {
-                headers: { 
-                    "token": API_TOKEN,
-                    "Content-Type": "application/json",
-                    "Accept": "application/json"
-                },
-                httpsAgent: httpsAgent,
-                timeout: 45000 // 45 segundos de espera
-            }
-        );
+            httpsAgent: httpsAgent,
+            timeout: 45000
+        });
 
-        // Extraer la respuesta de la estructura de Trareysa
-        const dataIA = response.data?.data;
-        const textoRespuesta = dataIA?.outputText || "La IA no devolvió una respuesta válida.";
-
-        // Responder al frontend (HostGator)
         res.json({ 
-            success: true,
-            answer: textoRespuesta,
-            meta: {
-                timestamp: new Date().toISOString()
-            }
+            success: true, 
+            answer: response.data?.data?.outputText || "Sin respuesta" 
         });
-
     } catch (error) {
-        console.error("Error en el puente:", error.message);
-        
-        // Manejo detallado de errores para debug
-        const status = error.response ? error.response.status : 500;
-        const mensaje = error.response ? error.response.data : error.message;
-
-        res.status(status).json({
-            success: false,
-            error: "Error al conectar con la IA de Trareysa",
-            detalles: mensaje
-        });
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 
-// --- 4. EXPORTACIÓN PARA VERCEL ---
-// IMPORTANTE: No usamos app.listen(). Vercel maneja el inicio.
 export default app;
