@@ -1,65 +1,42 @@
-import express from 'express';
 import axios from 'axios';
-import cors from 'cors';
 import https from 'https';
 
-const app = express();
+// Configuración de la IA
+const API_IA_URL = "https://trak-smart.trareysa.com:8093/api/chatbot/ask";
+const API_TOKEN = "APIKEY_EMPRESA_SOFTGATE_001";
+const httpsAgent = new https.Agent({ rejectUnauthorized: false });
 
-// --- CONFIGURACIÓN DE CORS MANUAL Y SEGURA ---
-app.use((req, res, next) => {
-    // Permitimos explícitamente tu dominio o cualquier origen (*)
+export default async function handler(req, res) {
+    // Manejo de CORS manual (para que no vuelva el error anterior)
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
-    res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, token, Accept, Authorization');
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, token');
 
-    // RESPUESTA INMEDIATA AL PREFLIGHT (OPTIONS)
-    // Esto es lo que está fallando en tu consola
     if (req.method === 'OPTIONS') {
         return res.status(200).end();
     }
-    next();
-});
 
-app.use(express.json());
-
-// --- VARIABLES ---
-const API_IA_URL = "https://trak-smart.trareysa.com:8093/api/chatbot/ask";
-const API_TOKEN = "APIKEY_EMPRESA_SOFTGATE_001";
-
-const httpsAgent = new https.Agent({ 
-    rejectUnauthorized: false,
-    keepAlive: true 
-});
-
-// --- RUTA POST ---
-app.post('/', async (req, res) => {
-    const { question } = req.body;
-    if (!question) return res.status(400).json({ error: "Pregunta obligatoria" });
+    if (req.method !== 'POST') {
+        return res.status(405).json({ error: 'Método no permitido' });
+    }
 
     try {
+        const { question } = req.body;
         const response = await axios.post(API_IA_URL, {
             message: question,
             vista: "CFDI",
             controladorOModulo: "SoporteCfdiController"
         }, {
-            headers: { 
-                "token": API_TOKEN,
-                "Content-Type": "application/json"
-            },
+            headers: { "token": API_TOKEN },
             httpsAgent: httpsAgent,
-            timeout: 45000
+            timeout: 30000
         });
 
-        res.json({ 
+        return res.status(200).json({ 
             success: true, 
             answer: response.data?.data?.outputText || "Sin respuesta" 
         });
     } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+        return res.status(500).json({ error: error.message });
     }
-});
-
-export default app;
-
-
+}
