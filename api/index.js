@@ -33,7 +33,7 @@ const httpsAgent = new https.Agent({
 });
 
 // --- RUTA POST ---
-app.post('/ask', async (req, res) => {
+app.post('/', async (req, res) => {
     const { question } = req.body;
     if (!question) return res.status(400).json({ error: "Pregunta obligatoria" });
 
@@ -61,4 +61,5 @@ app.post('/ask', async (req, res) => {
 });
 
 export default app;
+
 
