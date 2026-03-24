@@ -3,7 +3,7 @@ import https from 'https';
 
 // Configuración de la IA
 const API_IA_URL = "https://trak-smart.trareysa.com:8093/api/chatbot/ask";
-const API_TOKEN = "APIKEY_EMPRESA_SOFTGATE_001";
+const API_TOKEN = "SGIA-EMP-bba7729e6dae45eb9d45202b4cbd4b67";
 const httpsAgent = new https.Agent({ rejectUnauthorized: false });
 
 export default async function handler(req, res) {
