@@ -2,7 +2,7 @@ import axios from 'axios';
 import https from 'https';
 
 // Configuración de la IA
-const API_IA_URL = "https://trak-smart.trareysa.com:8093/api/chatbot/ask";
+const API_IA_URL = "https://softgateia-api.trareysa.com:8096/api/chatbot/ask";
 const API_TOKEN = "SGIA-EMP-bba7729e6dae45eb9d45202b4cbd4b67";
 const httpsAgent = new https.Agent({ rejectUnauthorized: false });
 
