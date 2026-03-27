@@ -15,72 +15,39 @@ const httpsAgent = new https.Agent({ rejectUnauthorized: false });
 
 
 export default async function handler(req, res) {
-
-    // Manejo de CORS manual (para que no vuelva el error anterior)
-
-    res.setHeader('Access-Control-Allow-Origin', '*');
-
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-
+    // CORS para TODAS las requests
+    res.setHeader('Access-Control-Allow-Origin', 'https://trareysadoc.com'); // o '*'
+    res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, token');
 
-
-
     if (req.method === 'OPTIONS') {
-
+        // Preflight debe terminar aquí
         return res.status(200).end();
-
     }
-
-
-
-    if (req.method !== 'POST') {
-
-        return res.status(405).json({ error: 'Método no permitido' });
-
-    }
-
-
 
     try {
+        const { question } = req.body || {};
 
-        const { question } = req.body;
+        if (!question) {
+            return res.status(400).json({ error: "Falta 'question'" });
+        }
 
-        const response = await axios.post(API_IA_URL, {
+        const response = await axios.post(
+            'http://softgateia-api.trareysa.com:8096/api/chatbot/ask', // HTTP si no hay certificado
+            { message: question },
+            { timeout: 30000 }
+        );
 
-            message: question,
-
-            vista: "CFDI",
-
-            controladorOModulo: "SoporteCfdiController"
-
-        }, {
-
-            headers: { "token": API_TOKEN },
-
-            httpsAgent: httpsAgent,
-
-            timeout: 30000
-
-        });
-
-
-
-        return res.status(200).json({ 
-
-            success: true, 
-
-            answer: response.data?.data?.outputText || "Sin respuesta" 
-
+        return res.status(200).json({
+            success: true,
+            answer: response.data?.data?.outputText || "Sin respuesta"
         });
 
     } catch (error) {
-
+        console.error(error);
         return res.status(500).json({ error: error.message });
-
     }
-
-} y esta la api // npm i axios
+}
 
 const axios = require('axios');
 
