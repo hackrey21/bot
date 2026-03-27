@@ -9,62 +9,35 @@ const API_TOKEN = "SGIA-EMP-bba7729e6dae45eb9d45202b4cbd4b67";
 const httpsAgent = new https.Agent({ rejectUnauthorized: false });
 
 export default async function handler(req, res) {
-    // 🔹 CORS: siempre al inicio
-    res.setHeader('Access-Control-Allow-Origin', 'https://trareysadoc.com'); // tu frontend
-    res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, token');
+export default async function handler(req, res) {
+    // Definimos las cabeceras permitidas
+    const allowedOrigin = "https://trareysadoc.com";
+    
+    // Aplicamos headers manualmente
+    res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+    res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, token, Authorization');
 
-    // 🔹 Preflight OPTIONS
+    // RESPUESTA CRÍTICA AL PREFLIGHT (OPTIONS)
     if (req.method === 'OPTIONS') {
         return res.status(200).end();
     }
 
-    // 🔹 Solo permitimos POST
-    if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Método no permitido' });
+    // Tu lógica de POST
+    if (req.method === 'POST') {
+        try {
+            // Aquí puedes procesar la pregunta de la IA
+            const { question } = req.body;
+            
+            return res.status(200).json({
+                answer: "Conexión exitosa. ¡CORS superado!",
+                status: "success"
+            });
+        } catch (error) {
+            return res.status(500).json({ error: "Error en el servidor de IA" });
+        }
     }
 
-    try {
-        const { question } = req.body || {};
-
-        if (!question) {
-            return res.status(400).json({ error: "Falta 'question'" });
-        }
-
-        // 🔹 Llamada al API externa
-        const { data } = await axios.post(
-            API_URL,
-            {
-                message: question,
-                vista: "CFDI",
-                controladorOModulo: "SoporteCfdiController"
-            },
-            {
-                headers: {
-                    'Content-Type': 'application/json',
-                    token: API_TOKEN
-                },
-                httpsAgent,  // útil si cambias a HTTPS autofirmado
-                timeout: 30000
-            }
-        );
-
-        // 🔹 Respuesta al frontend
-        return res.status(200).json({
-            success: true,
-            answer: data?.data?.outputText || "Sin respuesta"
-        });
-
-    } catch (error) {
-        console.error("💥 ERROR en handler:", error);
-
-        if (error.response) {
-            console.error("📥 Response data:", error.response.data);
-            console.error("📊 Status:", error.response.status);
-        } else if (error.request) {
-            console.error("📡 No hubo respuesta del servidor:", error.request);
-        }
-
-        return res.status(500).json({ error: error.message });
-    }
+    return res.status(405).json({ error: "Método no permitido" });
 }
