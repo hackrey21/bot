@@ -9,26 +9,30 @@ const API_TOKEN = "SGIA-EMP-bba7729e6dae45eb9d45202b4cbd4b67";
 const httpsAgent = new https.Agent({ rejectUnauthorized: false });
 
 export default async function handler(req, res) {
-    // Estas cabeceras aquí son el "respaldo" por si el vercel.json falla
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    // 1. Cabeceras obligatorias
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Origin', 'https://trareysadoc.com');
     res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-    res.setHeader('Access-Control-Allow-Headers', '*');
+    res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, token, Authorization');
 
+    // 2. RESPUESTA AL PREFLIGHT (ESTO ARREGLA TU ERROR ACTUAL)
     if (req.method === 'OPTIONS') {
-        return res.status(200).end();
+        res.status(200).send('ok'); // Forzamos el estatus OK
+        return;
     }
 
+    // 3. Tu lógica de POST
     if (req.method === 'POST') {
         try {
-            // Log para ver en la consola de Vercel si llega la petición
-            console.log("Cuerpo recibido:", req.body);
+            // Aquí procesas la pregunta que viene de Trareysa
+            const { question } = req.body;
             
             return res.status(200).json({
-                answer: "¡Conexión exitosa desde Vercel!",
+                answer: "Conexión establecida con éxito.",
                 status: "success"
             });
         } catch (error) {
-            return res.status(500).json({ error: error.message });
+            return res.status(500).json({ error: "Error interno" });
         }
     }
 
